@@ -35,6 +35,16 @@ class YAAT_Shortcodes {
         // Get current user
         $user_id = get_current_user_id();
         
+        // Check if user is tracked
+        $track_attendance = get_user_meta($user_id, 'yaat_track_attendance', true);
+        if ($track_attendance === '0') {
+            return '<div class="yaat-attendance-container">
+                <div class="yaat-attendance-restricted">
+                    <p>' . __('Your attendance is not being tracked. Please contact an administrator.', 'youth-alive-attendance') . '</p>
+                </div>
+            </div>';
+        }
+        
         // Check if user has already marked attendance today
         $database = new YAAT_Database();
         $already_marked = $database->has_marked_attendance($user_id);
@@ -74,12 +84,18 @@ class YAAT_Shortcodes {
         // Get current user
         $user_id = get_current_user_id();
         
-        // Mark attendance
-        $database = new YAAT_Database();
+        // Check if user is tracked
+        $track_attendance = get_user_meta($user_id, 'yaat_track_attendance', true);
+        if ($track_attendance === '0') {
+            wp_send_json_error(array('message' => __('Your attendance is not being tracked. Please contact an administrator.', 'youth-alive-attendance')));
+            return;
+        }
         
         // Check if already marked
+        $database = new YAAT_Database();
         if ($database->has_marked_attendance($user_id)) {
             wp_send_json_error(array('message' => __('You have already marked your attendance for today.', 'youth-alive-attendance')));
+            return;
         }
         
         // Mark attendance

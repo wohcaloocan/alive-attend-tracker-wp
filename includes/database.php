@@ -68,6 +68,12 @@ class YAAT_Database {
     public function mark_attendance($user_id, $date = null) {
         global $wpdb;
         
+        // Check if user is marked for tracking
+        $track_attendance = get_user_meta($user_id, 'yaat_track_attendance', true);
+        if ($track_attendance === '0') {
+            return false;
+        }
+        
         if ($date === null) {
             $date = current_time('Y-m-d');
         }
@@ -195,7 +201,16 @@ class YAAT_Database {
         
         $args = wp_parse_args($args, $defaults);
         
-        $where = array();
+        // Get users who are tracked
+        $tracked_user_ids = $this->get_tracked_user_ids();
+        
+        if (empty($tracked_user_ids)) {
+            return array();
+        }
+        
+        $user_ids_list = implode(',', $tracked_user_ids);
+        
+        $where = array("user_id IN ($user_ids_list)");
         $values = array();
         
         if (!empty($args['year'])) {
@@ -246,6 +261,34 @@ class YAAT_Database {
         }
         
         return $wpdb->get_results($sql);
+    }
+    
+    /**
+     * Get IDs of users who are tracked
+     */
+    private function get_tracked_user_ids() {
+        global $wpdb;
+        
+        // Get users who are explicitly tracked (meta value is 1)
+        $tracked_users_sql = "
+            SELECT user_id FROM {$wpdb->usermeta}
+            WHERE meta_key = 'yaat_track_attendance'
+            AND meta_value = '1'
+        ";
+        
+        // Get users who don't have the meta key set (default to tracked)
+        $default_tracked_users_sql = "
+            SELECT u.ID 
+            FROM {$wpdb->users} u
+            LEFT JOIN {$wpdb->usermeta} um ON u.ID = um.user_id AND um.meta_key = 'yaat_track_attendance'
+            WHERE um.umeta_id IS NULL
+        ";
+        
+        // Combine results
+        $tracked_user_ids = $wpdb->get_col($tracked_users_sql);
+        $default_tracked_user_ids = $wpdb->get_col($default_tracked_users_sql);
+        
+        return array_merge($tracked_user_ids, $default_tracked_user_ids);
     }
     
     /**
@@ -382,7 +425,7 @@ class YAAT_Database {
     public function get_tracked_users($args = array()) {
         $defaults = array(
             'search' => '',
-            'role' => 'subscriber',
+            'role' => '',
             'orderby' => 'display_name',
             'order' => 'ASC'
         );
@@ -402,13 +445,18 @@ class YAAT_Database {
             'compare' => 'NOT EXISTS'
         );
         
-        $user_query = new WP_User_Query(array(
-            'role' => $args['role'],
+        $user_args = array(
             'meta_query' => $meta_query,
             'search' => $args['search'],
             'orderby' => $args['orderby'],
             'order' => $args['order']
-        ));
+        );
+        
+        if (!empty($args['role'])) {
+            $user_args['role'] = $args['role'];
+        }
+        
+        $user_query = new WP_User_Query($user_args);
         
         return $user_query->get_results();
     }

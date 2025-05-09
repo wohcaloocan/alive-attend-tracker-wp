@@ -136,4 +136,33 @@ jQuery(document).ready(function($) {
     
     // Trigger change on page load to set initial state
     $('#yaat-filter-select').trigger('change');
+    
+    // Handle user tracking checkbox changes
+    $('.yaat-track-user-checkbox').on('change', function() {
+        var userId = $(this).data('user-id');
+        var isTracked = $(this).prop('checked');
+        
+        $.ajax({
+            url: ajaxurl,
+            method: 'POST',
+            data: {
+                action: 'yaat_update_user_tracking',
+                nonce: yaat_admin.nonce,
+                user_id: userId,
+                track: isTracked ? 1 : 0
+            },
+            success: function(response) {
+                if (!response.success) {
+                    alert(response.data.message);
+                    // Revert the checkbox if there was an error
+                    $(this).prop('checked', !isTracked);
+                }
+            },
+            error: function() {
+                alert('An error occurred. Please try again.');
+                // Revert the checkbox on error
+                $(this).prop('checked', !isTracked);
+            }
+        });
+    });
 });
