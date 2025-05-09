@@ -1,4 +1,3 @@
-
 <?php
 /**
  * Database setup and management for Youth Alive Attendance Tracker
@@ -247,6 +246,216 @@ class YAAT_Database {
         }
         
         return $wpdb->get_results($sql);
+    }
+    
+    /**
+     * Get top attendees based on filter criteria
+     * 
+     * @param string $filter_type The type of filter (month, quarter, year, all)
+     * @param int $year The year to filter by (if applicable)
+     * @param int $month The month to filter by (if applicable)
+     * @param int $quarter The quarter to filter by (if applicable)
+     * @param int $limit The maximum number of records to return
+     * @return array Array of user objects with attendance counts
+     */
+    public function get_top_attendees($filter_type = 'month', $year = null, $month = null, $quarter = null, $limit = 5) {
+        global $wpdb;
+        
+        $year = $year ?? date('Y');
+        $month = $month ?? date('n');
+        
+        $args = array(
+            'limit' => $limit
+        );
+        
+        switch ($filter_type) {
+            case 'month':
+                $args['year'] = $year;
+                $args['month'] = $month;
+                break;
+                
+            case 'quarter':
+                $args['year'] = $year;
+                $args['quarter'] = $quarter;
+                break;
+                
+            case 'year':
+                $args['year'] = $year;
+                break;
+                
+            case 'all':
+                // No additional filters for all-time
+                break;
+        }
+        
+        $attendees = $this->get_attendance_counts($args);
+        $result = array();
+        
+        foreach ($attendees as $attendee) {
+            $user = get_user_by('id', $attendee->user_id);
+            if ($user) {
+                $result[] = array(
+                    'user_id' => $attendee->user_id,
+                    'name' => $user->display_name,
+                    'count' => $attendee->count
+                );
+            }
+        }
+        
+        return $result;
+    }
+    
+    /**
+     * Get users with attendance data for specified period
+     */
+    public function get_users_with_attendance($args = array()) {
+        global $wpdb;
+        
+        $defaults = array(
+            'year' => date('Y'),
+            'month' => date('n'),
+            'per_page' => 10,
+            'page' => 1,
+            'search' => ''
+        );
+        
+        $args = wp_parse_args($args, $defaults);
+        $year = $args['year'];
+        $month = $args['month'];
+        
+        // Get start and end dates for the selected month
+        $start_date = "$year-$month-01";
+        $end_date = date('Y-m-t', strtotime($start_date));
+        
+        // Get users who should be tracked for attendance
+        $tracked_users = $this->get_tracked_users($args);
+        
+        if (empty($tracked_users)) {
+            return array(
+                'users' => array(),
+                'total' => 0
+            );
+        }
+        
+        // Get attendance data for this period
+        $attendance_records = $this->get_attendance_records(array(
+            'start_date' => $start_date,
+            'end_date' => $end_date
+        ));
+        
+        $user_attendance = array();
+        foreach ($attendance_records as $record) {
+            if (!isset($user_attendance[$record->user_id])) {
+                $user_attendance[$record->user_id] = array();
+            }
+            $user_attendance[$record->user_id][$record->attendance_date] = true;
+        }
+        
+        // Calculate total for pagination
+        $total_users = count($tracked_users);
+        
+        // Apply pagination
+        $users = array_slice($tracked_users, ($args['page'] - 1) * $args['per_page'], $args['per_page']);
+        
+        // Build user data with attendance info
+        $data = array();
+        foreach ($users as $user) {
+            $attendance_days = isset($user_attendance[$user->ID]) ? count($user_attendance[$user->ID]) : 0;
+            $data[] = array(
+                'id' => $user->ID,
+                'name' => $user->display_name,
+                'email' => $user->user_email,
+                'attendance_count' => $attendance_days,
+                'total_days' => date('t', strtotime($start_date))
+            );
+        }
+        
+        return array(
+            'users' => $data,
+            'total' => $total_users
+        );
+    }
+    
+    /**
+     * Get users who should be tracked for attendance
+     */
+    public function get_tracked_users($args = array()) {
+        $defaults = array(
+            'search' => '',
+            'role' => 'subscriber',
+            'orderby' => 'display_name',
+            'order' => 'ASC'
+        );
+        
+        $args = wp_parse_args($args, $defaults);
+        $meta_query = array();
+        
+        // Only include users who are marked for tracking, or who don't have the meta key set at all (default is to track)
+        $meta_query['relation'] = 'OR';
+        $meta_query[] = array(
+            'key' => 'yaat_track_attendance',
+            'value' => '1',
+            'compare' => '='
+        );
+        $meta_query[] = array(
+            'key' => 'yaat_track_attendance',
+            'compare' => 'NOT EXISTS'
+        );
+        
+        $user_query = new WP_User_Query(array(
+            'role' => $args['role'],
+            'meta_query' => $meta_query,
+            'search' => $args['search'],
+            'orderby' => $args['orderby'],
+            'order' => $args['order']
+        ));
+        
+        return $user_query->get_results();
+    }
+    
+    /**
+     * Get all registered users for settings page
+     */
+    public function get_all_users($args = array()) {
+        $defaults = array(
+            'search' => '',
+            'per_page' => 20,
+            'page' => 1,
+            'orderby' => 'display_name',
+            'order' => 'ASC'
+        );
+        
+        $args = wp_parse_args($args, $defaults);
+        
+        $user_query = new WP_User_Query(array(
+            'search' => $args['search'],
+            'orderby' => $args['orderby'],
+            'order' => $args['order'],
+            'number' => $args['per_page'],
+            'paged' => $args['page']
+        ));
+        
+        $users = $user_query->get_results();
+        $total = $user_query->get_total();
+        
+        $data = array();
+        foreach ($users as $user) {
+            $track_attendance = get_user_meta($user->ID, 'yaat_track_attendance', true);
+            $track = ($track_attendance === '') ? true : ($track_attendance === '1');
+            
+            $data[] = array(
+                'id' => $user->ID,
+                'name' => $user->display_name,
+                'email' => $user->user_email,
+                'role' => $user->roles[0],
+                'track' => $track
+            );
+        }
+        
+        return array(
+            'users' => $data,
+            'total' => $total
+        );
     }
     
     /**

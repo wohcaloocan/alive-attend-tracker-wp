@@ -1,95 +1,139 @@
 
-/**
- * Youth Alive Attendance Tracker Admin Scripts
- */
+// Youth Alive Attendance Tracker Admin Scripts
 
 jQuery(document).ready(function($) {
+    // Variables for attendance deletion
+    var currentAttendanceId = 0;
+    var deleteModal = $('#yaat-delete-confirm');
     
-    // Filter type change handler
-    $('#yaat-filter-type').on('change', function() {
-        var filterType = $(this).val();
-        
-        // Hide all filter options
-        $('.yaat-filter-option').hide();
-        
-        // Show relevant filter options based on selection
-        if (filterType === 'year' || filterType === 'quarter' || filterType === 'month') {
-            $('#yaat-year-filter').show();
-            
-            if (filterType === 'quarter') {
-                $('#yaat-quarter-filter').show();
-            } else if (filterType === 'month') {
-                $('#yaat-month-filter').show();
-            }
-        }
+    // Show delete confirmation modal when clicking delete icon
+    $(document).on('click', '.yaat-delete-attendance', function(e) {
+        e.stopPropagation();
+        currentAttendanceId = $(this).parent().data('attendance-id');
+        deleteModal.show();
     });
     
-    // Delete attendance functionality
-    var currentAttendanceId = null;
-    
-    $('.yaat-attendance-grid').on('click', '.yaat-delete-attendance', function(e) {
-        e.stopPropagation();
-        
-        // Get the attendance ID
-        currentAttendanceId = $(this).closest('.yaat-present').data('attendance-id');
-        
-        // Show confirmation modal
-        $('#yaat-delete-confirm').fadeIn(200);
+    // Handle delete confirmation
+    $('#yaat-delete-confirm-yes').on('click', function() {
+        if (currentAttendanceId > 0) {
+            $.ajax({
+                url: yaat_admin.ajax_url,
+                method: 'POST',
+                data: {
+                    action: 'yaat_delete_attendance',
+                    nonce: yaat_admin.nonce,
+                    attendance_id: currentAttendanceId
+                },
+                success: function(response) {
+                    if (response.success) {
+                        // Refresh the page to show updated data
+                        location.reload();
+                    } else {
+                        alert(response.data.message);
+                    }
+                    deleteModal.hide();
+                },
+                error: function() {
+                    alert('An error occurred while deleting the attendance record.');
+                    deleteModal.hide();
+                }
+            });
+        }
     });
     
     // Cancel delete
     $('#yaat-delete-confirm-no').on('click', function() {
-        $('#yaat-delete-confirm').fadeOut(200);
+        deleteModal.hide();
+        currentAttendanceId = 0;
     });
     
-    // Confirm delete
-    $('#yaat-delete-confirm-yes').on('click', function() {
-        if (!currentAttendanceId) return;
+    // Close modal when clicking outside
+    $(window).on('click', function(e) {
+        if ($(e.target).hasClass('yaat-modal')) {
+            $('.yaat-modal').hide();
+            currentAttendanceId = 0;
+        }
+    });
+    
+    // Add Attendance Modal
+    var addAttendanceModal = $('#yaat-add-attendance-modal');
+    var addAttendanceForm = $('#yaat-add-attendance-form');
+    
+    // Show add attendance modal
+    $('#yaat-add-attendance-button').on('click', function() {
+        addAttendanceModal.show();
+    });
+    
+    // Close add attendance modal
+    $('.yaat-modal-close, .yaat-cancel-button').on('click', function() {
+        addAttendanceModal.hide();
+    });
+    
+    // Handle add attendance form submission
+    addAttendanceForm.on('submit', function(e) {
+        e.preventDefault();
+        
+        var userId = $('#yaat-user').val();
+        var attendanceDate = $('#yaat-date').val();
+        
+        if (!userId || !attendanceDate) {
+            alert('Please fill in all required fields.');
+            return;
+        }
         
         $.ajax({
             url: yaat_admin.ajax_url,
-            type: 'POST',
+            method: 'POST',
             data: {
-                action: 'yaat_delete_attendance',
+                action: 'yaat_add_manual_attendance',
                 nonce: yaat_admin.nonce,
-                attendance_id: currentAttendanceId
+                user_id: userId,
+                attendance_date: attendanceDate
             },
             beforeSend: function() {
-                // Disable buttons during request
-                $('#yaat-delete-confirm-yes, #yaat-delete-confirm-no').prop('disabled', true);
+                $('.yaat-submit-button').prop('disabled', true).text('Adding...');
             },
             success: function(response) {
+                $('.yaat-submit-button').prop('disabled', false).text('Add Attendance');
+                
                 if (response.success) {
-                    // Hide the modal
-                    $('#yaat-delete-confirm').fadeOut(200);
-                    
-                    // Remove the attendance mark from the UI
-                    $('[data-attendance-id="' + currentAttendanceId + '"]').fadeOut(300, function() {
-                        $(this).remove();
-                    });
-                    
-                    // Show success notice
-                    $('h1').after('<div class="notice notice-success is-dismissible"><p>' + response.data.message + '</p></div>');
+                    addAttendanceModal.hide();
+                    addAttendanceForm[0].reset();
+                    alert(yaat_admin.add_attendance_success);
+                    location.reload(); // Refresh to show new data
                 } else {
-                    // Show error message
-                    alert(response.data.message || 'Error deleting attendance record.');
+                    alert(response.data.message || yaat_admin.add_attendance_error);
                 }
             },
             error: function() {
-                alert('Server error. Please try again.');
-            },
-            complete: function() {
-                // Re-enable buttons
-                $('#yaat-delete-confirm-yes, #yaat-delete-confirm-no').prop('disabled', false);
-                currentAttendanceId = null;
+                $('.yaat-submit-button').prop('disabled', false).text('Add Attendance');
+                alert('An error occurred. Please try again.');
             }
         });
     });
     
-    // Click outside modal to close
-    $(window).on('click', function(e) {
-        if ($(e.target).is('#yaat-delete-confirm')) {
-            $('#yaat-delete-confirm').fadeOut(200);
+    // Initialize datepicker for the date input
+    if ($.datepicker) {
+        $('#yaat-date').datepicker({
+            dateFormat: 'yy-mm-dd',
+            maxDate: new Date(),
+            changeMonth: true,
+            changeYear: true
+        });
+    }
+    
+    // Handle filter changes for top attendees widget
+    $('#yaat-filter-select').on('change', function() {
+        var filterType = $(this).val();
+        
+        // If quarter is selected, show the quarter select
+        if (filterType === 'quarter') {
+            $('#yaat-quarter-select').parent().show();
+        } else {
+            $('#yaat-quarter-select').parent().hide();
         }
     });
+    
+    // Trigger change on page load to set initial state
+    $('#yaat-filter-select').trigger('change');
 });

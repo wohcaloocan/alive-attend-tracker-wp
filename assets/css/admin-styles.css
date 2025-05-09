@@ -36,6 +36,73 @@
     margin-bottom: 20px;
 }
 
+/* Dashboard widgets */
+.yaat-dashboard-widgets {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+@media (min-width: 768px) {
+    .yaat-dashboard-widgets {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.yaat-widget {
+    background: #fff;
+    border: 1px solid #e2e4e7;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.yaat-widget-header {
+    background: #000164;
+    color: #fff;
+    padding: 12px 15px;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.yaat-widget-content {
+    padding: 15px;
+}
+
+/* Top attendees styles */
+.yaat-top-attendees-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.yaat-top-attendee-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.yaat-top-attendee-item:last-child {
+    border-bottom: none;
+}
+
+.yaat-top-attendee-rank {
+    font-weight: bold;
+    color: #000164;
+    margin-right: 10px;
+    min-width: 20px;
+}
+
+.yaat-attendance-count {
+    background: #e6e6f5;
+    color: #000164;
+    border-radius: 20px;
+    padding: 2px 10px;
+    font-weight: 600;
+    font-size: 12px;
+}
+
 /* Attendance grid styles */
 .yaat-attendance-grid-container {
     overflow-x: auto;
@@ -91,7 +158,7 @@
 
 .yaat-present {
     position: relative;
-    color: #9b87f5;
+    color: #000164;
 }
 
 .yaat-present .dashicons-yes-alt {
@@ -120,6 +187,55 @@
     color: #666;
 }
 
+/* User list styles */
+.yaat-users-list {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.yaat-users-list th {
+    background-color: #f0f0f5;
+    color: #000164;
+    text-align: left;
+    padding: 12px;
+}
+
+.yaat-users-list td {
+    padding: 12px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.yaat-users-list tr:last-child td {
+    border-bottom: none;
+}
+
+.yaat-users-list tr:hover td {
+    background-color: #f8f8ff;
+}
+
+.yaat-pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+}
+
+.yaat-pagination-info {
+    color: #666;
+    font-size: 13px;
+}
+
+.yaat-per-page {
+    display: flex;
+    align-items: center;
+}
+
+.yaat-per-page label {
+    margin-right: 5px;
+    color: #666;
+    font-size: 13px;
+}
+
 /* Modal styles */
 .yaat-modal {
     display: none;
@@ -138,9 +254,32 @@
     margin: 15% auto;
     padding: 20px;
     border: 1px solid #888;
-    width: 300px;
+    width: 400px;
+    max-width: 90%;
     border-radius: 4px;
-    text-align: center;
+    position: relative;
+}
+
+.yaat-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #f0f0f0;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+.yaat-modal-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #000164;
+}
+
+.yaat-modal-close {
+    cursor: pointer;
+    font-size: 20px;
+    font-weight: bold;
+    color: #666;
 }
 
 .yaat-modal-content p {
@@ -151,6 +290,103 @@
     margin: 0 5px;
 }
 
+.yaat-modal-content .yaat-form-group {
+    margin-bottom: 15px;
+}
+
+.yaat-modal-content label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.yaat-modal-content select,
+.yaat-modal-content input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.yaat-modal-footer {
+    margin-top: 20px;
+    text-align: right;
+    border-top: 1px solid #f0f0f0;
+    padding-top: 15px;
+}
+
+/* Button styles */
+.yaat-button {
+    display: inline-flex;
+    align-items: center;
+    background: #000164;
+    color: #fff;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 13px;
+    transition: background 0.2s;
+}
+
+.yaat-button:hover {
+    background: #00014b;
+}
+
+.yaat-button-outline {
+    background: transparent;
+    color: #000164;
+    border: 1px solid #000164;
+}
+
+.yaat-button-outline:hover {
+    background: #f0f0f5;
+}
+
+.yaat-button .dashicons {
+    margin-right: 5px;
+}
+
+/* Settings page styles */
+.yaat-settings-container {
+    max-width: 900px;
+}
+
+.yaat-settings-section {
+    margin-bottom: 30px;
+}
+
+.yaat-settings-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 15px;
+    color: #000164;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #eee;
+}
+
+.yaat-user-settings-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.yaat-user-settings-table th {
+    text-align: left;
+    padding: 12px;
+    background-color: #f0f0f5;
+    color: #000164;
+}
+
+.yaat-user-settings-table td {
+    padding: 12px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.yaat-user-settings-table tr:hover td {
+    background-color: #f8f8ff;
+}
+
 /* Report styles */
 .yaat-report-table {
     width: 100%;
@@ -158,7 +394,8 @@
 }
 
 .yaat-report-table th {
-    background-color: #f8f8f8;
+    background-color: #f0f0f5;
+    color: #000164;
 }
 
 .yaat-export-link {

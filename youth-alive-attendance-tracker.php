@@ -78,7 +78,9 @@ class Youth_Alive_Attendance_Tracker {
             wp_localize_script('yaat-admin-scripts', 'yaat_admin', array(
                 'ajax_url' => admin_url('admin-ajax.php'),
                 'nonce' => wp_create_nonce('yaat_admin_nonce'),
-                'confirm_delete' => __('Are you sure you want to delete this attendance record?', 'youth-alive-attendance')
+                'confirm_delete' => __('Are you sure you want to delete this attendance record?', 'youth-alive-attendance'),
+                'add_attendance_success' => __('Attendance record added successfully.', 'youth-alive-attendance'),
+                'add_attendance_error' => __('Failed to add attendance record.', 'youth-alive-attendance')
             ));
             wp_enqueue_style('jquery-ui-css', 'https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css');
         }

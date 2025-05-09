@@ -17,6 +17,8 @@ class YAAT_Admin_Menu {
         
         // Ajax handlers
         add_action('wp_ajax_yaat_delete_attendance', array($this, 'ajax_delete_attendance'));
+        add_action('wp_ajax_yaat_add_manual_attendance', array($this, 'ajax_add_manual_attendance'));
+        add_action('wp_ajax_yaat_update_user_tracking', array($this, 'ajax_update_user_tracking'));
     }
     
     /**
@@ -63,6 +65,16 @@ class YAAT_Admin_Menu {
             'youth-alive-attendance-export',
             array($this, 'export_page')
         );
+        
+        // Settings submenu - NEW
+        add_submenu_page(
+            'youth-alive-attendance',
+            __('Settings', 'youth-alive-attendance'),
+            __('Settings', 'youth-alive-attendance'),
+            'manage_options',
+            'youth-alive-attendance-settings',
+            array($this, 'settings_page')
+        );
     }
     
     /**
@@ -84,6 +96,13 @@ class YAAT_Admin_Menu {
      */
     public function export_page() {
         include_once YAAT_PLUGIN_DIR . 'includes/admin/views/export.php';
+    }
+    
+    /**
+     * Settings page callback - NEW
+     */
+    public function settings_page() {
+        include_once YAAT_PLUGIN_DIR . 'includes/admin/views/settings.php';
     }
     
     /**
@@ -116,5 +135,87 @@ class YAAT_Admin_Menu {
         } else {
             wp_send_json_error(array('message' => __('Failed to delete attendance record.', 'youth-alive-attendance')));
         }
+    }
+    
+    /**
+     * Ajax handler for adding manual attendance
+     */
+    public function ajax_add_manual_attendance() {
+        // Security check
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'yaat_admin_nonce')) {
+            wp_send_json_error(array('message' => __('Security check failed.', 'youth-alive-attendance')));
+        }
+        
+        // Check permissions
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => __('You do not have permission to do this.', 'youth-alive-attendance')));
+        }
+        
+        // Check required fields
+        if (empty($_POST['user_id']) || empty($_POST['attendance_date'])) {
+            wp_send_json_error(array('message' => __('Missing required fields.', 'youth-alive-attendance')));
+        }
+        
+        $user_id = intval($_POST['user_id']);
+        $attendance_date = sanitize_text_field($_POST['attendance_date']);
+        
+        // Validate date format
+        $date_obj = DateTime::createFromFormat('Y-m-d', $attendance_date);
+        if (!$date_obj || $date_obj->format('Y-m-d') !== $attendance_date) {
+            wp_send_json_error(array('message' => __('Invalid date format. Use YYYY-MM-DD.', 'youth-alive-attendance')));
+        }
+        
+        // Check if user exists
+        if (!get_user_by('id', $user_id)) {
+            wp_send_json_error(array('message' => __('User does not exist.', 'youth-alive-attendance')));
+        }
+        
+        // Mark attendance
+        $database = new YAAT_Database();
+        
+        // Check if already marked
+        if ($database->has_marked_attendance($user_id, $attendance_date)) {
+            wp_send_json_error(array('message' => __('Attendance already marked for this user on this date.', 'youth-alive-attendance')));
+        }
+        
+        $result = $database->mark_attendance($user_id, $attendance_date);
+        
+        if ($result) {
+            wp_send_json_success(array('message' => __('Attendance added successfully.', 'youth-alive-attendance')));
+        } else {
+            wp_send_json_error(array('message' => __('Failed to add attendance.', 'youth-alive-attendance')));
+        }
+    }
+    
+    /**
+     * Ajax handler for updating user tracking settings
+     */
+    public function ajax_update_user_tracking() {
+        // Security check
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'yaat_admin_nonce')) {
+            wp_send_json_error(array('message' => __('Security check failed.', 'youth-alive-attendance')));
+        }
+        
+        // Check permissions
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => __('You do not have permission to do this.', 'youth-alive-attendance')));
+        }
+        
+        // Check for user ID and tracking status
+        if (!isset($_POST['user_id']) || !isset($_POST['track'])) {
+            wp_send_json_error(array('message' => __('Missing required parameters.', 'youth-alive-attendance')));
+        }
+        
+        $user_id = intval($_POST['user_id']);
+        $track = (bool) $_POST['track'];
+        
+        // Update user meta
+        update_user_meta($user_id, 'yaat_track_attendance', $track ? '1' : '0');
+        
+        wp_send_json_success(array(
+            'message' => $track ? 
+                __('User is now being tracked for attendance.', 'youth-alive-attendance') : 
+                __('User is no longer being tracked for attendance.', 'youth-alive-attendance')
+        ));
     }
 }
