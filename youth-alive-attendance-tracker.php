@@ -47,9 +47,6 @@ class Youth_Alive_Attendance_Tracker {
         
         // Initialize admin and frontend components
         new YAAT_Admin_Menu();
-        
-        // Register Ajax handlers for settings page
-        add_action('wp_ajax_yaat_update_user_tracking', array($this, 'ajax_update_user_tracking'));
     }
     
     // Plugin activation
@@ -101,35 +98,8 @@ class Youth_Alive_Attendance_Tracker {
             'error_message' => __('There was an error marking your attendance. Please try again.', 'youth-alive-attendance')
         ));
     }
-    
-    /**
-     * Update user tracking status via Ajax
-     */
-    public function ajax_update_user_tracking() {
-        // Security check
-        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'yaat_admin_nonce')) {
-            wp_send_json_error(array('message' => __('Security check failed.', 'youth-alive-attendance')));
-        }
-        
-        // Check permissions
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(array('message' => __('You do not have permission to do this.', 'youth-alive-attendance')));
-        }
-        
-        // Get parameters
-        $user_id = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
-        $track = isset($_POST['track']) ? intval($_POST['track']) : 0;
-        
-        if (empty($user_id)) {
-            wp_send_json_error(array('message' => __('Missing required parameters.', 'youth-alive-attendance')));
-        }
-        
-        // Update user meta
-        update_user_meta($user_id, 'yaat_track_attendance', $track ? '1' : '0');
-        
-        wp_send_json_success(array('message' => __('User tracking status updated.', 'youth-alive-attendance')));
-    }
 }
 
 // Initialize the plugin
 $youth_alive_attendance_tracker = new Youth_Alive_Attendance_Tracker();
+

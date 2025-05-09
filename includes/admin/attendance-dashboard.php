@@ -175,3 +175,4 @@ class YAAT_Attendance_Dashboard {
 
 // Initialize the dashboard functionality
 new YAAT_Attendance_Dashboard();
+

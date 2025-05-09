@@ -121,3 +121,4 @@ class YAAT_Shortcodes {
 
 // Initialize shortcodes
 new YAAT_Shortcodes();
+
